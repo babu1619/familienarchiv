@@ -66,13 +66,10 @@ Weboberfläche: `http://<home-assistant>:8099` – Übersicht, Importe, E-Mail-E
 
 ## 3. Windows-Client bauen und bereitstellen
 
-Ein Tag `client-vX.Y.Z` startet den GitHub-Workflow *Windows-Client bauen*. Er baut `ArchivImporter.exe`
-und hängt sie an ein Release:
-
-```
-git tag client-v0.1.0
-git push origin client-v0.1.0
-```
+Jede Änderung am Client auf `main` startet den GitHub-Workflow *Windows-Client bauen*. Er baut
+`ArchivImporter.exe` und legt das Release `client-v<Version>` an; die Version steht in
+`windows-client/VERSION`. Für eine neue Version diese Datei erhöhen. Manuell starten geht unter
+*Actions › Windows-Client bauen › Run workflow*.
 
 Danach in der Weboberfläche unter *Windows-Client* auf **Von GitHub holen** klicken. Alternativ die .exe
 dort hochladen oder lokal mit `windows-client\build.ps1` bauen. Der Client meldet sich selbst, wenn der

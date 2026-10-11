@@ -1,10 +1,16 @@
 name: Windows-Client bauen
 
-# Ein Tag wie "client-v0.1.0" baut ArchivImporter.exe und hängt sie an ein Release.
-# Der Begleitdienst holt sie dann über "Von GitHub holen" auf der Download-Seite.
+# Jede Änderung am Client auf main baut ArchivImporter.exe und legt ein Release
+# "client-v<Version>" an (Version aus windows-client/VERSION). Neue Version = VERSION erhöhen.
+# Der Begleitdienst holt die .exe über "Von GitHub holen" auf der Download-Seite.
 on:
   push:
+    branches: [main]
     tags: ["client-v*"]
+    paths:
+      - "windows-client/**"
+      - "begleitdienst/archiv_core/**"
+      - ".github/workflows/windows-client.yml"
   workflow_dispatch:
 
 permissions:
@@ -24,11 +30,13 @@ jobs:
       - name: Abhängigkeiten
         run: python -m pip install -r requirements.txt pyinstaller
       - name: Version setzen
+        id: version
         shell: pwsh
         run: |
-          $v = "${{ github.ref_name }}" -replace '^client-v', ''
-          if ($v -eq "${{ github.ref_name }}") { $v = "0.0.0-${{ github.run_number }}" }
+          if ("${{ github.ref }}".StartsWith("refs/tags/client-v")) { $v = "${{ github.ref_name }}" -replace '^client-v', '' }
+          else { $v = (Get-Content VERSION -Raw).Trim() }
           "__version__ = `"$v`"" | Out-File -Encoding utf8 archiv_importer\_version.py
+          "v=$v" >> $env:GITHUB_OUTPUT
       - name: Bauen
         run: >
           pyinstaller --noconfirm --clean --onefile --windowed --name ArchivImporter
@@ -46,7 +54,9 @@ jobs:
           name: ArchivImporter
           path: windows-client/dist/ArchivImporter.exe
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/client-v')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: client-v${{ steps.version.outputs.v }}
+          name: Windows-Client ${{ steps.version.outputs.v }}
+          target_commitish: ${{ github.sha }}
           files: windows-client/dist/ArchivImporter.exe
