@@ -1,0 +1,54 @@
+{% extends "basis.html" %}
+{% block titel %}Übersicht{% endblock %}
+{% block inhalt %}
+<h1>Übersicht</h1>
+
+<div class="karten">
+  <div class="karte"><div class="titel">Paperless</div>
+    <div class="zahl" style="font-size:18px; padding-top:6px">{% if z.paperless %}<span class="status fertig">erreichbar</span>{% else %}<span class="status fehler">nicht erreichbar</span>{% endif %}</div></div>
+  <div class="karte"><div class="titel">Im Posteingang (prüfen)</div><div class="zahl">{{ z.posteingang if z.posteingang is not none else '–' }}</div></div>
+  <div class="karte"><div class="titel">Heute archiviert</div><div class="zahl">{{ z.heute }}</div>
+    {% if z.heute_pruefen %}<div class="leise">davon {{ z.heute_pruefen }} zur Prüfung</div>{% endif %}</div>
+  <div class="karte"><div class="titel">Warten auf Paperless</div><div class="zahl">{{ z.wartend }}</div></div>
+  <div class="karte"><div class="titel">Fehler</div><div class="zahl">{{ z.fehler }}</div>
+    {% if z.fehler %}<a href="/auftraege?status=fehler">ansehen</a>{% endif %}</div>
+  <div class="karte"><div class="titel">Fristen in 7 Tagen</div><div class="zahl">{{ z.fristen|length }}</div></div>
+</div>
+
+<div class="raster-2">
+  <section class="box" aria-label="Dateien hochladen">
+    <h2>Dateien hochladen</h2>
+    <form method="post" action="/hochladen" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:10px">
+      <label>PDFs oder Fotos<input type="file" name="dateien" multiple accept=".pdf,image/*"></label>
+      <div class="zeile">
+        <label style="flex:1 1 160px">Kategorie (optional)<input type="text" name="kategorie" placeholder="Wohnen/Nebenkosten"></label>
+        <label style="flex:1 1 160px">Tags, kommagetrennt<input type="text" name="tags" placeholder="steuer-2026"></label>
+        <label style="flex:1 1 120px">Person<select name="person"><option value="">–</option>{% for p in personen %}<option>{{ p }}</option>{% endfor %}</select></label>
+      </div>
+      <div><button type="submit" class="primaer">Hochladen und verarbeiten</button></div>
+      <p class="leise">Für große Stapel mit KI-Auswertung den <a href="/download">Windows-Client</a> verwenden.</p>
+    </form>
+  </section>
+  <section class="box" aria-label="Eingänge">
+    <h2>Eingänge</h2>
+    <p><strong>E-Mail:</strong>
+      {% if mail_aktiv %}aktiv · letzter Abruf {{ mail_abruf[11:16] or '–' }}
+        {% if mail_fehler %}<br><span class="status fehler">Fehler</span> {{ mail_fehler }}{% endif %}
+      {% else %}<span class="leise">nicht eingerichtet (imap_server fehlt)</span>{% endif %}</p>
+    <p style="margin-top:8px"><strong>Windows-Client:</strong>
+      {% if client %}Version {{ client.version }} bereit – <a href="/download">herunterladen</a>
+      {% else %}<span class="leise">noch nicht hinterlegt</span> – <a href="/download">einrichten</a>{% endif %}</p>
+    {% if z.fristen %}
+    <h2 style="margin-top:16px">Nächste Fälligkeiten</h2>
+    {% for f in z.fristen[:5] %}
+      <p><span class="mono">{{ f.datum }}</span> · <a href="{{ paperless_link }}/documents/{{ f.paperless_id }}/details" target="_blank" rel="noopener">Dokument #{{ f.paperless_id }}</a></p>
+    {% endfor %}
+    {% endif %}
+  </section>
+</div>
+
+<section aria-label="Letzte Importe">
+  <h2>Letzte Importe</h2>
+  {% include "_auftraege_tabelle.html" %}
+</section>
+{% endblock %}

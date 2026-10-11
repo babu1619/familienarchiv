@@ -1,0 +1,37 @@
+{% extends "basis.html" %}
+{% block titel %}E-Mail-Eingang{% endblock %}
+{% block inhalt %}
+<h1>E-Mail-Eingang</h1>
+{% if not mail_aktiv %}
+<div class="box"><p>Der E-Mail-Eingang ist nicht eingerichtet. Trage in der Konfiguration <code>imap_server</code>,
+<code>imap_benutzer</code>, <code>imap_passwort</code> und <code>erlaubte_absender</code> ein.</p></div>
+{% else %}
+<div class="raster-2">
+<section class="box">
+  <h2>So funktioniert’s</h2>
+  <p>Mail mit PDF oder Foto an <strong>{{ adresse }}</strong> schicken. Im Betreff:</p>
+  <div class="code" style="margin-top:8px">Zahnarzt Kontrolle @Gesundheit/Arzt #steuer-2026 #erstattung +Lisa</div>
+  <p class="leise" style="margin-top:8px"><code>@</code> Kategorie · <code>#</code> Tag · <code>+</code> Person · <code>!pruefen</code> immer prüfen · Rest = Titel.
+  Leerzeichen in Kategorien als <code>_</code> oder in Anführungszeichen.</p>
+</section>
+<section class="box">
+  <h2>Freigegebene Absender</h2>
+  {% for a in erlaubt %}<p class="mono">{{ a }}</p>{% else %}<p class="leise">Keine – alle Mails landen in der Quarantäne.</p>{% endfor %}
+</section>
+</div>
+{% endif %}
+<div class="tabelle-box">
+<table>
+<thead><tr><th>Zeit</th><th>Absender</th><th>Betreff</th><th>Ergebnis</th></tr></thead>
+<tbody>
+{% for m in mails %}
+<tr><td class="mono">{{ m.zeit[:16].replace('T', ' ') }}</td><td>{{ m.absender }}</td><td>{{ m.betreff }}</td>
+<td><span class="status {{ m.ergebnis }}">{{ {'verarbeitet': 'verarbeitet', 'quarantaene': 'Quarantäne', 'fehler': 'Fehler'}.get(m.ergebnis, m.ergebnis) }}</span>
+<span class="leise">{{ m.details }}</span></td></tr>
+{% else %}
+<tr><td colspan="4" class="leise">Noch keine Mails verarbeitet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

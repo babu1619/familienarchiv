@@ -1,0 +1,13 @@
+{% extends "basis.html" %}
+{% block titel %}Importe{% endblock %}
+{% block inhalt %}
+<h1>Importe</h1>
+<p class="filter">Filter:
+  <a href="/auftraege" {% if not filter %}style="font-weight:600"{% endif %}>alle</a>
+  <a href="/auftraege?status=wartet" {% if filter == 'wartet' %}style="font-weight:600"{% endif %}>wartend</a>
+  <a href="/auftraege?status=fertig" {% if filter == 'fertig' %}style="font-weight:600"{% endif %}>fertig</a>
+  <a href="/auftraege?status=duplikat" {% if filter == 'duplikat' %}style="font-weight:600"{% endif %}>Duplikate</a>
+  <a href="/auftraege?status=fehler" {% if filter == 'fehler' %}style="font-weight:600"{% endif %}>Fehler</a>
+</p>
+{% include "_auftraege_tabelle.html" %}
+{% endblock %}

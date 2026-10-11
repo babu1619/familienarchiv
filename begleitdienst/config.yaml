@@ -1,0 +1,69 @@
+name: Familienarchiv Begleitdienst
+version: "0.1.0"
+slug: familienarchiv_begleitdienst
+description: Import-API, E-Mail-Eingang und Extraktion für Paperless-ngx; stellt den Windows-Client bereit.
+url: https://github.com/babu1619/familienarchiv
+arch:
+  - aarch64
+  - amd64
+init: false
+startup: application
+boot: auto
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: Weboberfläche und API
+webui: "http://[HOST]:[PORT:8099]/"
+options:
+  paperless_url: "http://homeassistant.local:8000"
+  paperless_token: ""
+  paperless_oeffentliche_url: ""
+  api_token: ""
+  web_benutzer: admin
+  web_passwort: ""
+  personen:
+    - Familie
+  kategorie_praefix: "kat:"
+  posteingang_tag: Posteingang
+  imap_server: ""
+  imap_port: 993
+  imap_benutzer: ""
+  imap_passwort: ""
+  imap_ordner: INBOX
+  imap_intervall: 120
+  erlaubte_absender: []
+  rueckmeldung: false
+  smtp_server: ""
+  smtp_port: 587
+  smtp_benutzer: ""
+  smtp_passwort: ""
+  smtp_absender: ""
+  github_repo: "babu1619/familienarchiv"
+  github_token: ""
+schema:
+  paperless_url: url
+  paperless_token: password
+  paperless_oeffentliche_url: str?
+  api_token: password
+  web_benutzer: str
+  web_passwort: password
+  personen:
+    - str
+  kategorie_praefix: str
+  posteingang_tag: str
+  imap_server: str?
+  imap_port: port
+  imap_benutzer: str?
+  imap_passwort: password?
+  imap_ordner: str
+  imap_intervall: int(30,3600)
+  erlaubte_absender:
+    - str
+  rueckmeldung: bool
+  smtp_server: str?
+  smtp_port: port
+  smtp_benutzer: str?
+  smtp_passwort: password?
+  smtp_absender: str?
+  github_repo: str?
+  github_token: password?

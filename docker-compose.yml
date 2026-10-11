@@ -1,0 +1,38 @@
+# Alternative zum Home-Assistant-Add-on, z. B. für einen späteren Umzug auf einen Raspberry Pi.
+# Start:  docker compose up -d   ·   Paperless: http://<rechner>:8000   ·   Begleitdienst: http://<rechner>:8099
+services:
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on: [redis]
+    ports: ["8000:8000"]
+    volumes:
+      - ./daten/paperless/data:/usr/src/paperless/data
+      - ./daten/paperless/media:/usr/src/paperless/media
+      - ./daten/paperless/consume:/usr/src/paperless/consume
+      - ./daten/paperless/export:/usr/src/paperless/export
+    environment:
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_OCR_LANGUAGE: deu
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+      PAPERLESS_CONSUMER_RECURSIVE: "true"
+      PAPERLESS_CONSUMER_SUBDIRS_AS_TAGS: "true"
+      PAPERLESS_CONSUMER_ENABLE_BARCODES: "true"
+
+  begleitdienst:
+    build: ./begleitdienst
+    restart: unless-stopped
+    depends_on: [paperless]
+    ports: ["8099:8099"]
+    volumes:
+      - ./daten/begleitdienst:/data
+    environment:
+      ARCHIV_PAPERLESS_URL: http://paperless:8000
+      ARCHIV_PAPERLESS_TOKEN: ${PAPERLESS_TOKEN}
+      ARCHIV_API_TOKEN: ${ARCHIV_API_TOKEN}
+      ARCHIV_WEB_PASSWORT: ${ARCHIV_WEB_PASSWORT}
+      ARCHIV_PERSONEN: Familie

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}Familienarchiv{% endblock %} · Begleitdienst</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="rahmen">
+<nav class="haupt" aria-label="Hauptnavigation">
+  <div class="marke">Familienarchiv</div>
+  <a href="/" class="{{ 'aktiv' if aktiv == 'start' }}">Übersicht</a>
+  <a href="/auftraege" class="{{ 'aktiv' if aktiv == 'auftraege' }}">Importe</a>
+  <a href="/mails" class="{{ 'aktiv' if aktiv == 'mails' }}">E-Mail-Eingang</a>
+  <a href="/download" class="{{ 'aktiv' if aktiv == 'download' }}">Windows-Client</a>
+  <a href="{{ paperless_link }}" target="_blank" rel="noopener">Paperless öffnen ↗</a>
+  <div class="fuss">Begleitdienst {{ version }}</div>
+</nav>
+<main>
+{% if meldung %}<div class="meldung" role="status">{{ meldung }}</div>{% endif %}
+{% block inhalt %}{% endblock %}
+</main>
+</div>
+</body>
+</html>

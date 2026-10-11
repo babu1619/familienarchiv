@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archiv-Importer</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app">
+  <header class="kopf">
+    <div class="zeile">
+      <span class="marke">Archiv-Importer</span>
+      <span id="server-status" class="leise"></span>
+      <a id="update" class="hinweis-update" hidden target="_blank" rel="noopener"></a>
+    </div>
+    <div class="zeile">
+      <button type="button" id="knopf-ordner">Ordner hinzufügen</button>
+      <button type="button" id="knopf-dateien">Dateien hinzufügen</button>
+      <button type="button" id="knopf-einstellungen">Einstellungen</button>
+    </div>
+  </header>
+
+  <div id="einrichtung" class="banner" hidden>
+    Bitte zuerst unter <button type="button" class="link" id="link-einstellungen">Einstellungen</button>
+    die Server-Adresse und das API-Token eintragen – beides steht auf der Download-Seite des Begleitdienstes.
+  </div>
+
+  <section class="stapel" aria-label="Stapel">
+    <div class="fortschritt-block">
+      <div class="zeile zwischen">
+        <strong id="stapel-name">Noch kein Stapel</strong>
+        <span id="stapel-zahl" class="leise"></span>
+      </div>
+      <div class="balken" role="progressbar" aria-label="Fortschritt" aria-valuemin="0" aria-valuemax="100" id="balken"><div id="balken-wert"></div></div>
+      <div class="zaehler" id="zaehler"></div>
+    </div>
+    <div class="info-block">
+      <span class="leise">Lokales Modell</span>
+      <span id="ki-modell">–</span>
+      <span id="ki-status" class="leise"></span>
+    </div>
+    <div class="info-block">
+      <label class="haken"><input type="checkbox" id="nachtmodus"> Nachtmodus: wach bleiben</label>
+      <span class="leise klein">Laptop am Netzteil lassen</span>
+    </div>
+    <button type="button" id="knopf-pause">Pausieren</button>
+  </section>
+
+  <div class="arbeitsflaeche">
+    <section class="liste" aria-label="Dokumente">
+      <div class="filter" id="filter" role="toolbar" aria-label="Filter"></div>
+      <div class="tabelle-rahmen">
+        <table>
+          <thead><tr><th>Status</th><th>Datei</th><th>Absender</th><th>Datum</th><th class="r">Betrag</th><th>Kategorie</th></tr></thead>
+          <tbody id="tabelle"></tbody>
+        </table>
+        <p id="leer" class="leer" hidden>Noch keine Dokumente. Ordner oder Dateien hinzufügen – die Analyse startet sofort.</p>
+      </div>
+    </section>
+
+    <section class="detail" id="detail" aria-label="Ausgewähltes Dokument">
+      <p class="leise">Dokument in der Liste auswählen.</p>
+    </section>
+  </div>
+
+  <footer class="fuss">
+    <span id="uebergabe-status" class="leise"></span>
+    <div class="zeile">
+      <button type="button" id="knopf-aufraeumen">Erledigte ausblenden</button>
+      <button type="button" class="primaer" id="knopf-alle">Alle sicheren übergeben</button>
+    </div>
+  </footer>
+</div>
+
+<dialog id="dlg-hinzufuegen">
+  <form method="dialog" id="form-hinzufuegen">
+    <h2 id="hinzufuegen-titel">Ordner hinzufügen</h2>
+    <div id="bereich-pfad">
+      <label>Ordner oder Datei (Pfad)
+        <span class="zeile"><input type="text" id="pfad" placeholder="C:\Users\…\Scans" style="flex:1">
+        <button type="button" id="knopf-durchsuchen" hidden>Durchsuchen …</button></span>
+      </label>
+      <p class="leise klein">Unterordner werden mit eingelesen. Erkannt werden PDF, JPG, PNG und TIFF.</p>
+    </div>
+    <div id="bereich-dateien" hidden>
+      <label>Dateien<input type="file" id="dateien" multiple accept=".pdf,image/*"></label>
+    </div>
+    <h3>Vorgaben für den ganzen Stapel <span class="leise">(optional)</span></h3>
+    <div class="raster">
+      <label>Kategorie<input type="text" id="v-kategorie" list="liste-kategorien"></label>
+      <label>Person<select id="v-person"><option value="">–</option></select></label>
+      <label class="breit">Tags, kommagetrennt<input type="text" id="v-tags" placeholder="altbestand, steuer-2025"></label>
+    </div>
+    <div class="zeile rechts">
+      <button type="button" data-schliessen>Abbrechen</button>
+      <button type="submit" class="primaer" id="knopf-starten">Stapel starten</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-einstellungen">
+  <form method="dialog" id="form-einstellungen">
+    <h2>Einstellungen</h2>
+    <h3>Server (Begleitdienst)</h3>
+    <div class="raster">
+      <label class="breit">Server-Adresse<input type="text" name="server_url" placeholder="http://192.168.1.20:8099"></label>
+      <label class="breit">API-Token<input type="password" name="api_token" autocomplete="off"></label>
+    </div>
+    <h3>Lokale KI</h3>
+    <div class="raster">
+      <label class="haken breit"><input type="checkbox" name="ki_aktiv"> KI für offene Felder verwenden</label>
+      <label>Ollama-Adresse<input type="text" name="ollama_url"></label>
+      <label>Modell<input type="text" name="modell" list="liste-modelle"></label>
+      <label>Zeitlimit je Dokument (s)<input type="number" name="ki_timeout" min="30" max="3600"></label>
+      <label>Max. Zeichen an die KI<input type="number" name="ki_max_zeichen" min="1000" max="30000" step="500"></label>
+    </div>
+    <h3>Texterkennung</h3>
+    <div class="raster">
+      <label class="breit">Tesseract-Programm<input type="text" name="tesseract_pfad" placeholder="C:\Program Files\Tesseract-OCR\tesseract.exe"></label>
+      <label>Sprache<input type="text" name="ocr_sprache"></label>
+    </div>
+    <h3>Ablauf</h3>
+    <label class="haken"><input type="checkbox" name="nachtmodus"> Nachtmodus: Ruhezustand verhindern, solange gearbeitet wird</label>
+    <label class="haken"><input type="checkbox" name="sichere_automatisch_uebergeben"> Sichere Dokumente automatisch übergeben</label>
+    <p id="test-ergebnis" class="test-ergebnis" role="status"></p>
+    <div class="zeile rechts">
+      <button type="button" id="knopf-testen">Verbindung testen</button>
+      <button type="button" data-schliessen>Abbrechen</button>
+      <button type="submit" class="primaer">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<datalist id="liste-kategorien"></datalist>
+<datalist id="liste-absender"></datalist>
+<datalist id="liste-modelle"></datalist>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<div class="tabelle-box">
+<table>
+<thead><tr><th>Eingang</th><th>Quelle</th><th>Datei</th><th>Status</th><th>Dokument</th><th></th></tr></thead>
+<tbody>
+{% for a in auftraege %}
+<tr>
+  <td class="mono">{{ a.erstellt[:16].replace('T', ' ') }}</td>
+  <td>{{ {'windows-client': 'Windows-Client', 'mail': 'E-Mail', 'web': 'Browser'}.get(a.quelle, a.quelle) }}</td>
+  <td>{{ a.dateiname }}</td>
+  <td>
+    {% if a.status == 'fertig' and not a.sicher %}<span class="status pruefen">im Posteingang</span>
+    {% elif a.status == 'fertig' %}<span class="status fertig">archiviert</span>
+    {% else %}<span class="status {{ a.status }}">{{ {'wartet': 'wartet', 'laeuft': 'läuft', 'duplikat': 'Duplikat', 'fehler': 'Fehler'}.get(a.status, a.status) }}</span>{% endif %}
+    {% if a.fehler %}<div class="leise" style="font-size:12px; margin-top:4px">{{ a.fehler }}</div>{% endif %}
+  </td>
+  <td>{% if a.paperless_id %}<a href="{{ paperless_link }}/documents/{{ a.paperless_id }}/details" target="_blank" rel="noopener">#{{ a.paperless_id }}</a>{% endif %}</td>
+  <td>{% if a.status == 'fehler' %}<form method="post" action="/auftraege/{{ a.id }}/wiederholen"><button type="submit">Wiederholen</button></form>{% endif %}</td>
+</tr>
+{% else %}
+<tr><td colspan="6" class="leise">Noch keine Importe.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>

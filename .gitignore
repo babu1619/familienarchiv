@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.sqlite
+build/
+dist/
+*.spec
+windows-client/archiv_importer/_version.py
+.venv/

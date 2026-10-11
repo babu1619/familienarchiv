@@ -1,0 +1,56 @@
+{% extends "basis.html" %}
+{% block titel %}Windows-Client{% endblock %}
+{% block inhalt %}
+<h1>Windows-Client</h1>
+<p class="leise">Für große Stapel: liest Dokumente auf dem PC, wertet sie mit einem lokalen KI-Modell aus
+und übergibt Datei und Daten an diesen Server. Kein Dokument verlässt dafür das Haus.</p>
+
+<div class="raster-2">
+<section class="box" aria-label="Herunterladen">
+  <h2>Herunterladen</h2>
+  {% if client %}
+    <p>Version <strong>{{ client.version }}</strong> · {{ client.groesse_mb }} MB · {{ client.datum[:10] }}</p>
+    <p style="margin-top:12px"><a class="knopf primaer" href="/download/ArchivImporter.exe" download>ArchivImporter.exe herunterladen</a></p>
+  {% else %}
+    <p class="leise">Noch kein Windows-Client hinterlegt. Unten von GitHub holen oder die .exe hochladen.</p>
+  {% endif %}
+</section>
+
+<section class="box" aria-label="Verbindungsdaten">
+  <h2>Verbindungsdaten für den Client</h2>
+  <label>Server-Adresse<input type="text" readonly value="{{ server_url }}" onclick="this.select()"></label>
+  <label style="margin-top:10px">API-Token
+    <span class="zeile"><input id="token" type="password" readonly value="{{ api_token }}" style="flex:1" onclick="this.select()">
+    <button type="button" onclick="const t=document.getElementById('token'); t.type = t.type === 'password' ? 'text' : 'password'">anzeigen</button></span>
+  </label>
+</section>
+</div>
+
+<section class="box" aria-label="Einrichtung">
+  <h2>Einrichtung am PC</h2>
+  <ol class="schritte">
+    <li><strong>Ollama installieren</strong> (ollama.com) und ein kleines Modell laden, z. B. in der Eingabeaufforderung:
+      <div class="code" style="margin-top:6px">ollama pull qwen2.5:3b</div>
+      <span class="leise">Mit 8 GB Arbeitsspeicher nur Modelle bis etwa 3–4 Mrd. Parameter. Der Modellname ist im Client jederzeit änderbar.</span></li>
+    <li><strong>Tesseract-OCR installieren</strong> (Windows-Installer der UB Mannheim) mit dem Sprachpaket Deutsch – nötig für Scans und Fotos.</li>
+    <li><strong>ArchivImporter.exe</strong> herunterladen und starten. Windows SmartScreen fragt beim ersten Start nach – „Weitere Informationen“ › „Trotzdem ausführen“.</li>
+    <li>Unter <em>Einstellungen</em> Server-Adresse und API-Token von oben eintragen, Modell wählen, testen.</li>
+  </ol>
+</section>
+
+<section class="box" aria-label="Neue Version bereitstellen">
+  <h2>Neue Version bereitstellen</h2>
+  <div class="raster-2">
+    <form method="post" action="/download/github">
+      <p>Neuestes Release (Tag <code>client-v…</code>) aus
+        {% if github_repo %}<strong>{{ github_repo }}</strong>{% else %}<span class="leise">– Option github_repo nicht gesetzt –</span>{% endif %} laden.</p>
+      <p style="margin-top:10px"><button type="submit" {% if not github_repo %}disabled{% endif %}>Von GitHub holen</button></p>
+    </form>
+    <form method="post" action="/download/hochladen" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:8px">
+      <label>.exe-Datei<input type="file" name="datei" accept=".exe"></label>
+      <label>Version<input type="text" name="version" placeholder="0.1.0"></label>
+      <div><button type="submit">Hochladen</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

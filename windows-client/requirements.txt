@@ -1,0 +1,10 @@
+starlette>=0.37
+uvicorn>=0.30
+python-multipart>=0.0.9
+requests>=2.31
+pypdf>=4.0
+pypdfium2>=4.30
+pytesseract>=0.3.10
+pillow>=10.0
+pywebview>=5.0
+keyring>=25.0
