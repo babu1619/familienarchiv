@@ -26,10 +26,15 @@ class Duplikat(PaperlessFehler):
 
 
 class Paperless:
-    def __init__(self, url: str, token: str, timeout: float = 30, cache_sekunden: float = 60):
+    def __init__(self, url: str, token: str, timeout: float = 30, cache_sekunden: float = 60,
+                 ssl_pruefen: bool = True):
         self.url = url.rstrip("/")
         self.timeout = timeout
         self.sitzung = requests.Session()
+        self.sitzung.verify = ssl_pruefen
+        if not ssl_pruefen:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         token = token.strip()
         if token.lower().startswith("token "):
             token = token[6:].strip()
@@ -70,9 +75,18 @@ class Paperless:
             r = self.sitzung.get(f"{self.url}/api/documents/", params={"page_size": 1}, timeout=15)
         except requests.exceptions.ConnectTimeout:
             return False, f"Zeitüberschreitung beim Verbinden mit {self.url}"
+        except requests.exceptions.SSLError:
+            return False, ("Das HTTPS-Zertifikat von Paperless wird nicht akzeptiert (selbst signiert?) – "
+                           "Option paperless_ssl_pruefen ausschalten")
         except requests.exceptions.ConnectionError as exc:
-            grund = "Name nicht auflösbar" if "Name or service not known" in str(exc) or "resolve" in str(exc) \
-                else "Verbindung abgelehnt oder kein Netz"
+            text = str(exc)
+            if "Name or service not known" in text or "resolve" in text:
+                grund = "Name nicht auflösbar"
+            elif "reset by peer" in text or "aborted" in text.lower() or "RemoteDisconnected" in text:
+                grund = ("Verbindung vom Server abgebrochen – meist sind http:// und https:// vertauscht; "
+                         "die Adresse genau so eintragen, wie sie im Browser funktioniert")
+            else:
+                grund = "Verbindung abgelehnt oder kein Netz"
             return False, f"Keine Verbindung zu {self.url} ({grund})"
         except requests.RequestException as exc:
             return False, f"Keine Verbindung zu {self.url}: {exc.__class__.__name__}"

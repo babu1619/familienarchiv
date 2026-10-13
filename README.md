@@ -52,6 +52,7 @@ Kategorien einmal so in Paperless anlegen.
 | `paperless_url` | Adresse von Paperless aus Sicht des Add-ons, z. B. `http://192.168.1.20:8000` |
 | `paperless_token` | API-Token aus Schritt 1 |
 | `paperless_oeffentliche_url` | optional: Adresse für Links im Browser, falls abweichend |
+| `paperless_ssl_pruefen` | bei `https://` mit selbst signiertem Zertifikat ausschalten |
 | `api_token` | frei gewähltes, langes Geheimnis für Windows-Client und Home Assistant |
 | `web_benutzer` / `web_passwort` | Anmeldung an der Weboberfläche (Pflicht) |
 | `personen` | Auswahl für das Feld *Person*, z. B. `Familie`, `Benjamin`, `Lisa` |

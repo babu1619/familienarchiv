@@ -1,5 +1,5 @@
 name: Familienarchiv Begleitdienst
-version: "0.1.2"
+version: "0.1.3"
 slug: familienarchiv_begleitdienst
 description: Import-API, E-Mail-Eingang und Extraktion für Paperless-ngx; stellt den Windows-Client bereit.
 url: https://github.com/babu1619/familienarchiv
@@ -18,6 +18,7 @@ options:
   paperless_url: "http://homeassistant.local:8000"
   paperless_token: ""
   paperless_oeffentliche_url: ""
+  paperless_ssl_pruefen: true
   api_token: ""
   web_benutzer: admin
   web_passwort: ""
@@ -44,6 +45,7 @@ schema:
   paperless_url: url
   paperless_token: password
   paperless_oeffentliche_url: str?
+  paperless_ssl_pruefen: bool
   api_token: password
   web_benutzer: str
   web_passwort: password

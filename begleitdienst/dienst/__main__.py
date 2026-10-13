@@ -37,7 +37,7 @@ def main() -> None:
     k = laden(os.environ.get("ARCHIV_OPTIONEN", "/data/options.json"))
     os.makedirs(k.daten_verzeichnis, exist_ok=True)
     db = Datenbank(os.path.join(k.daten_verzeichnis, "begleitdienst.sqlite"))
-    p = Paperless(k.paperless_url, k.paperless_token)
+    p = Paperless(k.paperless_url, k.paperless_token, ssl_pruefen=k.paperless_ssl_pruefen)
     importer = Importer(k, db, p)
     if k.rueckmeldung and k.smtp_server:
         importer.versender = smtp_versender(k)

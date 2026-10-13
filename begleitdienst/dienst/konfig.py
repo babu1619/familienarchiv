@@ -15,7 +15,8 @@ from dataclasses import dataclass, field, fields
 class Konfig:
     paperless_url: str = "http://localhost:8000"
     paperless_token: str = ""
-    paperless_oeffentliche_url: str = ""       # für Links in Mails und Oberfläche
+    paperless_oeffentliche_url: str = ""
+    paperless_ssl_pruefen: bool = True         # aus bei selbst signiertem Zertifikat       # für Links in Mails und Oberfläche
     api_token: str = ""                        # Zugang für Windows-Client und Home Assistant
     web_benutzer: str = "admin"
     web_passwort: str = ""
