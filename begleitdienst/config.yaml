@@ -15,7 +15,7 @@ ports_description:
   8099/tcp: Weboberfläche und API
 webui: "http://[HOST]:[PORT:8099]/"
 options:
-  paperless_url: "http://homeassistant.local:8000"
+  paperless_url: "http://192.168.1.2:8000"
   paperless_token: ""
   paperless_oeffentliche_url: ""
   paperless_ssl_pruefen: true
