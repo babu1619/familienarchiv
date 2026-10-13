@@ -28,6 +28,7 @@ def freier_port() -> int:
 class FakePaperless:
     def __init__(self, neue_select_optionen: bool = True):
         self.neue_select_optionen = neue_select_optionen
+        self.tasks_kaputt = False      # /api/tasks/ liefert nichts (wie manche Installationen)
         self.daten = {"tags": [], "correspondents": [], "document_types": [], "custom_fields": []}
         self.dokumente: dict[int, dict] = {}
         self.aufgaben: dict[str, dict] = {}
@@ -132,6 +133,11 @@ class FakePaperless:
         return JSONResponse(task)
 
     async def _tasks(self, request: Request):
+        if self.tasks_kaputt:
+            for a in self.aufgaben.values():  # Verarbeitung läuft trotzdem weiter
+                if a["status"] == "STARTED" and time.time() >= a["_fertig"]:
+                    a["status"] = "SUCCESS"
+            return JSONResponse([])
         a = self.aufgaben.get(request.query_params.get("task_id", ""))
         if not a:
             return JSONResponse([])
@@ -146,6 +152,10 @@ class FakePaperless:
         tag = request.query_params.get("tags__id__all")
         if tag:
             docs = [d for d in docs if int(tag) in d["tags"]]
+        pruef = request.query_params.get("checksum__iexact")
+        if pruef:
+            fertig = {a["_doc"] for a in self.aufgaben.values() if a.get("status") == "SUCCESS" and "_doc" in a}
+            docs = [d for d in docs if self.pruefsummen.get(pruef.lower()) == d["id"] and d["id"] in fertig]
         return JSONResponse({"count": len(docs), "next": None, "results": docs[:int(request.query_params.get("page_size", 25))]})
 
     async def _document(self, request: Request):
@@ -166,6 +176,11 @@ class FakePaperless:
             doc.update(daten)
         return JSONResponse(doc)
 
+    async def _metadata(self, request: Request):
+        doc_id = int(request.path_params["id"])
+        md5 = next((k for k, v in self.pruefsummen.items() if v == doc_id), "")
+        return JSONResponse({"original_checksum": md5})
+
     async def _notes(self, request: Request):
         doc_id = int(request.path_params["id"])
         self.notizen.setdefault(doc_id, []).append((await request.json())["note"])
@@ -177,6 +192,7 @@ class FakePaperless:
             Route("/api/documents/post_document/", self._post_document, methods=["POST"]),
             Route("/api/documents/{id:int}/", self._document, methods=["GET", "PATCH"]),
             Route("/api/documents/{id:int}/notes/", self._notes, methods=["POST"]),
+            Route("/api/documents/{id:int}/metadata/", self._metadata),
             Route("/api/tasks/", self._tasks),
             Route("/api/custom_fields/{id:int}/", self._feld_aendern(), methods=["PATCH"]),
         ]

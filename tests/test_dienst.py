@@ -134,6 +134,28 @@ class ImporterTest(Umgebung):
         self.abarbeiten()
         self.assertEqual(self.db.auftrag(r["id"])["status"], "duplikat")
 
+    def test_ohne_aufgabenliste_ueber_pruefsumme(self):
+        self.fake.tasks_kaputt = True
+        r = self.imp.einreihen(pdf_aus_text(RECHNUNG_STADTWERKE), "s.pdf", {"quelle": "web"})
+        self.abarbeiten()
+        a = self.db.auftrag(r["id"])
+        self.assertEqual(a["status"], "fertig", a["fehler"])
+        self.assertEqual(self.fake.feldwerte(a["paperless_id"])["Betrag brutto"], "EUR84.20")
+
+    def test_wiederholung_nutzt_vorhandenes_dokument(self):
+        pdf = pdf_aus_text(HANDWERKER)
+        r = self.imp.einreihen(pdf, "m.pdf", {"quelle": "web"})
+        a = self.db.auftrag(r["id"])
+        # erster Versuch: hochgeladen, dann abgebrochen
+        task = self.p.hochladen(pdf, "m.pdf")
+        self.p.auf_aufgabe_warten(task)
+        self.db.auftrag_setzen(r["id"], status="fehler", paperless_task=task, fehler="Zeitüberschreitung")
+        self.assertTrue(self.imp.wiederholen(r["id"]))
+        self.abarbeiten()
+        a = self.db.auftrag(r["id"])
+        self.assertEqual(a["status"], "fertig", a["fehler"])
+        self.assertEqual(len(self.fake.dokumente), 1)
+
     def test_korrektur_als_regel(self):
         self.imp.korrekturen_lernen([{"absender": "Elektro Meier", "feld": "kategorie", "alt": "Wohnen",
                                       "neu": "Wohnen/Instandhaltung", "als_regel": True}])

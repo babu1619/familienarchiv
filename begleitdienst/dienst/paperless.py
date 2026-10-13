@@ -264,27 +264,59 @@ class Paperless:
                              files={"document": (dateiname, daten)}, data=felder, timeout=120)
         return antwort if isinstance(antwort, str) else str(antwort.get("task_id", antwort))
 
-    def auf_aufgabe_warten(self, task_id: str, timeout: float = 900, intervall: float = 2) -> int:
+    def dokument_per_pruefsumme(self, md5: str) -> int | None:
+        """Sucht ein Dokument über die MD5-Prüfsumme des Originals. None, wenn nicht eindeutig gefunden."""
+        try:
+            daten = self._json("GET", "/api/documents/", params={"checksum__iexact": md5, "page_size": 2})
+            treffer = daten.get("results", []) if isinstance(daten, dict) else []
+            if len(treffer) != 1:
+                return None
+            doc_id = int(treffer[0]["id"])
+            # absichern, falls eine Paperless-Version den Filter ignoriert
+            meta = self._json("GET", f"/api/documents/{doc_id}/metadata/")
+            if str(meta.get("original_checksum", "")).lower() == md5.lower():
+                return doc_id
+        except (PaperlessFehler, KeyError, ValueError, TypeError) as exc:
+            log.debug("Suche über Prüfsumme nicht möglich: %s", exc)
+        return None
+
+    def auf_aufgabe_warten(self, task_id: str, timeout: float = 900, intervall: float = 2,
+                           md5: str | None = None) -> int:
+        """Wartet, bis Paperless das Dokument angelegt hat, und gibt dessen ID zurück.
+
+        Primär über die Aufgabe (task), zusätzlich über die Prüfsumme – manche Paperless-Versionen
+        liefern die Aufgabe nicht zuverlässig über /api/tasks/ aus."""
         ende = time.time() + timeout
+        naechste_suche = time.time() + 10
+        zuletzt = "keine Antwort"
         while time.time() < ende:
-            aufgaben = self._json("GET", "/api/tasks/", params={"task_id": task_id})
+            try:
+                aufgaben = self._json("GET", "/api/tasks/", params={"task_id": task_id})
+            except PaperlessFehler as exc:
+                aufgaben, zuletzt = [], str(exc)[:200]
             if isinstance(aufgaben, dict):
                 aufgaben = aufgaben.get("results", [])
-            if aufgaben:
-                a = aufgaben[0]
+            a = next((x for x in aufgaben or [] if str(x.get("task_id")) == str(task_id)), None)
+            if a is None and aufgaben:
+                zuletzt = f"{len(aufgaben)} Aufgabe(n), aber nicht {task_id}"
+            if a:
                 status = a.get("status")
-                if status == "SUCCESS":
-                    doc_id = a.get("related_document")
-                    if doc_id is None:
-                        raise PaperlessFehler(f"Aufgabe ohne Dokument: {a.get('result')}")
-                    return int(doc_id)
+                zuletzt = f"Status {status}"
+                if status == "SUCCESS" and a.get("related_document") not in (None, ""):
+                    return int(a["related_document"])
                 if status in ("FAILURE", "REVOKED"):
                     meldung = str(a.get("result") or "")
                     if "duplicate" in meldung.lower() or "duplikat" in meldung.lower():
                         raise Duplikat(meldung)
                     raise PaperlessFehler(f"Paperless konnte das Dokument nicht verarbeiten: {meldung}")
+            if md5 and time.time() >= naechste_suche:
+                doc_id = self.dokument_per_pruefsumme(md5)
+                if doc_id:
+                    log.info("Dokument %s über Prüfsumme gefunden (Aufgabe: %s)", doc_id, zuletzt)
+                    return doc_id
+                naechste_suche = time.time() + 10
             time.sleep(intervall)
-        raise PaperlessFehler("Zeitüberschreitung beim Warten auf Paperless")
+        raise PaperlessFehler(f"Zeitüberschreitung beim Warten auf Paperless (zuletzt: {zuletzt})")
 
     def dokument(self, doc_id: int) -> dict:
         return self._json("GET", f"/api/documents/{doc_id}/")
