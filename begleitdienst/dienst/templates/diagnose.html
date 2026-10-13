@@ -1,0 +1,10 @@
+{% extends "basis.html" %}
+{% block titel %}Diagnose{% endblock %}
+{% block inhalt %}
+<h1>Diagnose</h1>
+<p class="leise">Rohdaten zur Fehlersuche. Alles markieren und kopieren – das API-Token ist nicht enthalten.</p>
+<div class="code" id="diagnose">{% for titel, wert in zeilen %}== {{ titel }} ==
+{{ wert }}
+
+{% endfor %}</div>
+{% endblock %}

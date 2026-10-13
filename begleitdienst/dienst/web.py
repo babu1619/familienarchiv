@@ -132,6 +132,35 @@ def erstelle_app(k: Konfig, db: Datenbank, p: Paperless, importer: Importer, dow
         ok = importer.wiederholen(request.path_params["auftrag_id"])
         return zurueck("/auftraege", "Auftrag wird erneut verarbeitet." if ok else "Auftrag kann nicht wiederholt werden.")
 
+    def diagnose_daten() -> list[tuple[str, str]]:
+        import hashlib
+        zeilen = [("Begleitdienst", __version__), ("Paperless-Adresse", k.paperless_url)]
+        ok, grund = p.verbindung_pruefen()
+        zeilen.append(("Verbindung", "ok" if ok else grund))
+        zeilen.append(("GET /api/", p.roh("/api/", laenge=300)))
+        auftraege = db.auftraege(5)
+        zeilen.append(("Letzte Aufträge", "\n".join(
+            f"{a['erstellt']} {a['status']:9} task={a['paperless_task'] or '-'} doc={a['paperless_id'] or '-'} "
+            f"{(a['fehler'] or '')[:150]}" for a in auftraege) or "keine"))
+        a = next((x for x in auftraege if x.get("paperless_task")), None)
+        if a:
+            zeilen.append((f"GET /api/tasks/?task_id={a['paperless_task']}",
+                           p.roh("/api/tasks/", {"task_id": a["paperless_task"]})))
+            pfad = os.path.join(importer.eingang, a["id"])
+            if os.path.exists(pfad):
+                with open(pfad, "rb") as f:
+                    md5 = hashlib.md5(f.read()).hexdigest()
+                zeilen.append((f"GET /api/documents/?checksum__iexact={md5}",
+                               p.roh("/api/documents/", {"checksum__iexact": md5, "page_size": 2,
+                                                          "fields": "id,title,original_file_name"})))
+                zeilen.append(("Suche über Prüfsumme", str(p.dokument_per_pruefsumme(md5))))
+        zeilen.append(("GET /api/tasks/ (Anfang)", p.roh("/api/tasks/", laenge=800)))
+        return zeilen
+
+    @web
+    async def diagnose_seite(request: Request):
+        return seite(request, "diagnose", zeilen=await run_in_threadpool(diagnose_daten))
+
     @web
     async def mails_seite(request: Request):
         return seite(request, "mails", mails=db.alle("SELECT * FROM mails ORDER BY zeit DESC LIMIT 100"),
@@ -260,6 +289,7 @@ def erstelle_app(k: Konfig, db: Datenbank, p: Paperless, importer: Importer, dow
         Route("/auftraege/{auftrag_id}/wiederholen", auftrag_wiederholen, methods=["POST"]),
         Route("/hochladen", web_hochladen, methods=["POST"]),
         Route("/mails", mails_seite),
+        Route("/diagnose", diagnose_seite),
         Route("/download", download_seite),
         Route("/download/ArchivImporter.exe", download_datei),
         Route("/download/hochladen", download_hochladen, methods=["POST"]),

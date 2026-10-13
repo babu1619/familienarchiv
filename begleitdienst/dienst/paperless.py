@@ -105,6 +105,15 @@ class Paperless:
                            "(z. B. eine Anmeldeseite) – Adresse prüfen")
         return True, ""
 
+    def roh(self, pfad: str, params: dict | None = None, laenge: int = 1500) -> str:
+        """Rohantwort für die Diagnose-Seite (Status, Versionskopf, Textanfang)."""
+        try:
+            r = self.sitzung.get(f"{self.url}{pfad}", params=params, timeout=15)
+        except requests.RequestException as exc:
+            return f"Fehler: {exc.__class__.__name__}: {str(exc)[:300]}"
+        version = r.headers.get("x-version") or r.headers.get("x-api-version") or "?"
+        return f"HTTP {r.status_code} · Paperless {version}\n{r.text[:laenge]}"
+
     def erreichbar(self) -> bool:
         return self.verbindung_pruefen()[0]
 
@@ -280,7 +289,7 @@ class Paperless:
             log.debug("Suche über Prüfsumme nicht möglich: %s", exc)
         return None
 
-    def auf_aufgabe_warten(self, task_id: str, timeout: float = 900, intervall: float = 2,
+    def auf_aufgabe_warten(self, task_id: str, timeout: float = 300, intervall: float = 2,
                            md5: str | None = None) -> int:
         """Wartet, bis Paperless das Dokument angelegt hat, und gibt dessen ID zurück.
 
@@ -315,6 +324,7 @@ class Paperless:
                     log.info("Dokument %s über Prüfsumme gefunden (Aufgabe: %s)", doc_id, zuletzt)
                     return doc_id
                 naechste_suche = time.time() + 10
+                log.info("Warte auf Paperless (Aufgabe %s): %s", task_id, zuletzt)
             time.sleep(intervall)
         raise PaperlessFehler(f"Zeitüberschreitung beim Warten auf Paperless (zuletzt: {zuletzt})")
 

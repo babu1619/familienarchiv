@@ -334,3 +334,13 @@ class VerbindungTest(unittest.TestCase):
         ok, grund = Paperless(f"http://127.0.0.1:{freier_port()}", TOKEN).verbindung_pruefen()
         self.assertFalse(ok)
         self.assertIn("Keine Verbindung", grund)
+
+
+class DiagnoseTest(WebTest):
+    def test_diagnose_seite(self):
+        self.imp.einreihen(pdf_aus_text(RECHNUNG_STADTWERKE), "s.pdf", {"quelle": "web"})
+        time.sleep(1.5)
+        seite = requests.get(self.url + "/diagnose", auth=self.web).text
+        self.assertIn("== Verbindung ==", seite)
+        self.assertIn("/api/tasks/", seite)
+        self.assertNotIn(TOKEN, seite)
