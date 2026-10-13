@@ -57,7 +57,7 @@ def _umwandeln(typ, wert):
         return int(wert)
     if typ in (bool, "bool"):
         return wert if isinstance(wert, bool) else str(wert).lower() in ("1", "true", "ja", "yes", "on")
-    return str(wert)
+    return str(wert).strip()
 
 
 def laden(pfad: str = "/data/options.json") -> Konfig:

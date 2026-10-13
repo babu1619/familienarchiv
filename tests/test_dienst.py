@@ -294,3 +294,21 @@ class KonfigTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VerbindungTest(unittest.TestCase):
+    def test_gruende(self):
+        fake = FakePaperless().starten()
+        try:
+            self.assertEqual(Paperless(fake.url, TOKEN).verbindung_pruefen(), (True, ""))
+            self.assertTrue(Paperless(fake.url, f"Token {TOKEN} ").verbindung_pruefen()[0])
+            ok, grund = Paperless(fake.url, "falsch").verbindung_pruefen()
+            self.assertFalse(ok)
+            self.assertIn("API-Token", grund)
+            ok, grund = Paperless(fake.url + "/falsch", TOKEN).verbindung_pruefen()
+            self.assertIn("404", grund)
+        finally:
+            fake.stoppen()
+        ok, grund = Paperless(f"http://127.0.0.1:{freier_port()}", TOKEN).verbindung_pruefen()
+        self.assertFalse(ok)
+        self.assertIn("Keine Verbindung", grund)

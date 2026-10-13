@@ -30,6 +30,9 @@ class Paperless:
         self.url = url.rstrip("/")
         self.timeout = timeout
         self.sitzung = requests.Session()
+        token = token.strip()
+        if token.lower().startswith("token "):
+            token = token[6:].strip()
         self.sitzung.headers.update({"Authorization": f"Token {token}", "Accept": "application/json"})
         self._cache: dict[str, tuple[float, list]] = {}
         self._cache_sekunden = cache_sekunden
@@ -61,12 +64,35 @@ class Paperless:
             naechste = daten.get("next")
         return ergebnis
 
-    def erreichbar(self) -> bool:
+    def verbindung_pruefen(self) -> tuple[bool, str]:
+        """Prüft Adresse und Token. Gibt (ok, Grund in Klartext) zurück."""
         try:
-            self._anfrage("GET", "/api/documents/", params={"page_size": 1}, timeout=5)
-            return True
-        except PaperlessFehler:
-            return False
+            r = self.sitzung.get(f"{self.url}/api/documents/", params={"page_size": 1}, timeout=15)
+        except requests.exceptions.ConnectTimeout:
+            return False, f"Zeitüberschreitung beim Verbinden mit {self.url}"
+        except requests.exceptions.ConnectionError as exc:
+            grund = "Name nicht auflösbar" if "Name or service not known" in str(exc) or "resolve" in str(exc) \
+                else "Verbindung abgelehnt oder kein Netz"
+            return False, f"Keine Verbindung zu {self.url} ({grund})"
+        except requests.RequestException as exc:
+            return False, f"Keine Verbindung zu {self.url}: {exc.__class__.__name__}"
+        if r.status_code in (401, 403):
+            return False, (f"Paperless lehnt das API-Token ab (HTTP {r.status_code}). Token in den Optionen prüfen: "
+                           "nur das Token selbst, ohne „Token “ davor")
+        if r.status_code == 400:
+            return False, ("Paperless lehnt die Anfrage ab (HTTP 400) – meist passt die Adresse nicht zu "
+                           "PAPERLESS_URL bzw. PAPERLESS_ALLOWED_HOSTS in Paperless")
+        if r.status_code == 404:
+            return False, f"Unter {self.url}/api/ antwortet kein Paperless (HTTP 404) – Adresse oder Port prüfen"
+        if r.status_code >= 400:
+            return False, f"Paperless antwortet mit HTTP {r.status_code}"
+        if "json" not in r.headers.get("content-type", ""):
+            return False, (f"Unter {self.url} antwortet etwas, aber nicht die Paperless-API "
+                           "(z. B. eine Anmeldeseite) – Adresse prüfen")
+        return True, ""
+
+    def erreichbar(self) -> bool:
+        return self.verbindung_pruefen()[0]
 
     # ---------------------------------------------------------------- Stammdaten mit Cache
 

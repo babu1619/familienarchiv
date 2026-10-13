@@ -99,9 +99,11 @@ def erstelle_app(k: Konfig, db: Datenbank, p: Paperless, importer: Importer, dow
             "heute": db.zaehlen("status = 'fertig' AND erstellt >= ?", (heute,)),
             "heute_pruefen": db.zaehlen("status = 'fertig' AND sicher = 0 AND erstellt >= ?", (heute,)),
             "fristen": db.faellige(heute, (date.today() + timedelta(days=7)).isoformat()),
-            "paperless": p.erreichbar(),
+            "paperless": None,
+            "paperless_fehler": "",
             "posteingang": None,
         }
+        z["paperless"], z["paperless_fehler"] = p.verbindung_pruefen()
         if z["paperless"]:
             try:
                 tag = next((t for t in p.tags() if t["name"].lower() == k.posteingang_tag.lower()), None)
@@ -190,7 +192,8 @@ def erstelle_app(k: Konfig, db: Datenbank, p: Paperless, importer: Importer, dow
 
     @api
     async def api_status(request: Request):
-        return JSONResponse({"version": __version__, "paperless": await run_in_threadpool(p.erreichbar),
+        ok, grund = await run_in_threadpool(p.verbindung_pruefen)
+        return JSONResponse({"version": __version__, "paperless": ok, "paperless_fehler": grund,
                              "posteingang_tag": k.posteingang_tag})
 
     @api

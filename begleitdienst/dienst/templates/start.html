@@ -5,7 +5,8 @@
 
 <div class="karten">
   <div class="karte"><div class="titel">Paperless</div>
-    <div class="zahl" style="font-size:18px; padding-top:6px">{% if z.paperless %}<span class="status fertig">erreichbar</span>{% else %}<span class="status fehler">nicht erreichbar</span>{% endif %}</div></div>
+    <div class="zahl" style="font-size:18px; padding-top:6px">{% if z.paperless %}<span class="status fertig">erreichbar</span>{% else %}<span class="status fehler">nicht erreichbar</span>{% endif %}</div>
+    {% if z.paperless_fehler %}<div class="leise" style="font-size:12px; margin-top:6px">{{ z.paperless_fehler }}</div>{% endif %}</div>
   <div class="karte"><div class="titel">Im Posteingang (prüfen)</div><div class="zahl">{{ z.posteingang if z.posteingang is not none else '–' }}</div></div>
   <div class="karte"><div class="titel">Heute archiviert</div><div class="zahl">{{ z.heute }}</div>
     {% if z.heute_pruefen %}<div class="leise">davon {{ z.heute_pruefen }} zur Prüfung</div>{% endif %}</div>
