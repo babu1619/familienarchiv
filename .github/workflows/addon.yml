@@ -1,0 +1,32 @@
+name: Add-on Probebau
+
+# Baut das Docker-Image des Begleitdienstes für den Home Assistant Green (arm64) und amd64,
+# damit Fehler auffallen, bevor Home Assistant das Add-on installiert.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "begleitdienst/**"
+      - ".github/workflows/addon.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Image bauen (arm64, amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: begleitdienst
+          platforms: linux/arm64,linux/amd64
+          push: false
+      - name: Startprobe (amd64)
+        run: |
+          docker build -t begleitdienst-probe begleitdienst
+          docker run -d --name probe -p 8099:8099 -e ARCHIV_WEB_PASSWORT=x -e ARCHIV_API_TOKEN=y \
+            -e ARCHIV_DATEN_VERZEICHNIS=/tmp/daten -e ARCHIV_PAPERLESS_URL=http://127.0.0.1:1 begleitdienst-probe
+          for i in $(seq 1 20); do curl -fs http://127.0.0.1:8099/gesundheit && exit 0; sleep 1; done
+          docker logs probe; exit 1

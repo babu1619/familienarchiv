@@ -1,5 +1,5 @@
 name: Familienarchiv Begleitdienst
-version: "0.1.0"
+version: "0.1.1"
 slug: familienarchiv_begleitdienst
 description: Import-API, E-Mail-Eingang und Extraktion für Paperless-ngx; stellt den Windows-Client bereit.
 url: https://github.com/babu1619/familienarchiv
