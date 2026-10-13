@@ -142,6 +142,22 @@ class ImporterTest(Umgebung):
         self.assertEqual(a["status"], "fertig", a["fehler"])
         self.assertEqual(self.fake.feldwerte(a["paperless_id"])["Betrag brutto"], "EUR84.20")
 
+    def test_paperless3_format(self):
+        self.fake.v3 = True
+        pdf = pdf_aus_text(RECHNUNG_STADTWERKE)
+        r = self.imp.einreihen(pdf, "s.pdf", {"quelle": "web"})
+        self.abarbeiten()
+        a = self.db.auftrag(r["id"])
+        self.assertEqual(a["status"], "fertig", a["fehler"])
+        # Duplikat in Paperless 3
+        self.db.ausfuehren("DELETE FROM dateien")
+        r = self.imp.einreihen(pdf, "s2.pdf", {"quelle": "web"})
+        self.abarbeiten()
+        self.assertEqual(self.db.auftrag(r["id"])["status"], "duplikat")
+        # Prüfsumme SHA256
+        import hashlib
+        self.assertEqual(self.p.dokument_per_pruefsumme(hashlib.sha256(pdf).hexdigest(), "x"), a["paperless_id"])
+
     def test_wiederholung_nutzt_vorhandenes_dokument(self):
         pdf = pdf_aus_text(HANDWERKER)
         r = self.imp.einreihen(pdf, "m.pdf", {"quelle": "web"})

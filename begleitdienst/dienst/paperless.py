@@ -273,24 +273,44 @@ class Paperless:
                              files={"document": (dateiname, daten)}, data=felder, timeout=120)
         return antwort if isinstance(antwort, str) else str(antwort.get("task_id", antwort))
 
-    def dokument_per_pruefsumme(self, md5: str) -> int | None:
-        """Sucht ein Dokument über die MD5-Prüfsumme des Originals. None, wenn nicht eindeutig gefunden."""
-        try:
-            daten = self._json("GET", "/api/documents/", params={"checksum__iexact": md5, "page_size": 2})
-            treffer = daten.get("results", []) if isinstance(daten, dict) else []
-            if len(treffer) != 1:
-                return None
-            doc_id = int(treffer[0]["id"])
-            # absichern, falls eine Paperless-Version den Filter ignoriert
-            meta = self._json("GET", f"/api/documents/{doc_id}/metadata/")
-            if str(meta.get("original_checksum", "")).lower() == md5.lower():
-                return doc_id
-        except (PaperlessFehler, KeyError, ValueError, TypeError) as exc:
-            log.debug("Suche über Prüfsumme nicht möglich: %s", exc)
+    def dokument_per_pruefsumme(self, *pruefsummen: str | None) -> int | None:
+        """Sucht ein Dokument über die Prüfsumme des Originals (Paperless 3: SHA256, ältere: MD5)."""
+        for summe in [x for x in pruefsummen if x]:
+            try:
+                daten = self._json("GET", "/api/documents/", params={"checksum__iexact": summe, "page_size": 2})
+                treffer = daten.get("results", []) if isinstance(daten, dict) else []
+                if len(treffer) != 1:
+                    continue
+                doc_id = int(treffer[0]["id"])
+                # absichern, falls eine Paperless-Version den Filter ignoriert
+                meta = self._json("GET", f"/api/documents/{doc_id}/metadata/")
+                if str(meta.get("original_checksum", "")).lower() == summe.lower():
+                    return doc_id
+            except (PaperlessFehler, KeyError, ValueError, TypeError) as exc:
+                log.debug("Suche über Prüfsumme nicht möglich: %s", exc)
         return None
 
+    @staticmethod
+    def _aufgabe_auswerten(a: dict) -> tuple[str, int | None, str]:
+        """(status in Kleinbuchstaben, Dokument-ID, Meldung) – für Paperless 2 und 3."""
+        status = str(a.get("status") or "").lower()
+        doc_id = a.get("related_document")
+        if doc_id in (None, "") and a.get("related_document_ids"):
+            doc_id = a["related_document_ids"][0]
+        daten = a.get("result_data") if isinstance(a.get("result_data"), dict) else {}
+        if doc_id in (None, "") and daten.get("document_id") is not None:
+            doc_id = daten["document_id"]
+        meldung = a.get("result") or daten.get("error") or daten.get("message") or a.get("result_message") or ""
+        if not meldung and daten:
+            meldung = str(daten)
+        try:
+            doc_id = int(doc_id) if doc_id not in (None, "") else None
+        except (TypeError, ValueError):
+            doc_id = None
+        return status, doc_id, str(meldung)
+
     def auf_aufgabe_warten(self, task_id: str, timeout: float = 300, intervall: float = 2,
-                           md5: str | None = None) -> int:
+                           md5: str | None = None, sha256: str | None = None) -> int:
         """Wartet, bis Paperless das Dokument angelegt hat, und gibt dessen ID zurück.
 
         Primär über die Aufgabe (task), zusätzlich über die Prüfsumme – manche Paperless-Versionen
@@ -309,17 +329,16 @@ class Paperless:
             if a is None and aufgaben:
                 zuletzt = f"{len(aufgaben)} Aufgabe(n), aber nicht {task_id}"
             if a:
-                status = a.get("status")
+                status, doc_id, meldung = self._aufgabe_auswerten(a)
                 zuletzt = f"Status {status}"
-                if status == "SUCCESS" and a.get("related_document") not in (None, ""):
-                    return int(a["related_document"])
-                if status in ("FAILURE", "REVOKED"):
-                    meldung = str(a.get("result") or "")
+                if status == "success" and doc_id:
+                    return doc_id
+                if status in ("failure", "revoked"):
                     if "duplicate" in meldung.lower() or "duplikat" in meldung.lower():
                         raise Duplikat(meldung)
                     raise PaperlessFehler(f"Paperless konnte das Dokument nicht verarbeiten: {meldung}")
-            if md5 and time.time() >= naechste_suche:
-                doc_id = self.dokument_per_pruefsumme(md5)
+            if (md5 or sha256) and time.time() >= naechste_suche:
+                doc_id = self.dokument_per_pruefsumme(sha256, md5)
                 if doc_id:
                     log.info("Dokument %s über Prüfsumme gefunden (Aufgabe: %s)", doc_id, zuletzt)
                     return doc_id

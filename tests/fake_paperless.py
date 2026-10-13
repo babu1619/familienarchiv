@@ -29,6 +29,7 @@ class FakePaperless:
     def __init__(self, neue_select_optionen: bool = True):
         self.neue_select_optionen = neue_select_optionen
         self.tasks_kaputt = False      # /api/tasks/ liefert nichts (wie manche Installationen)
+        self.v3 = False                # Antwortformat von Paperless 3 (Aufgaben, SHA256-Prüfsummen)
         self.daten = {"tags": [], "correspondents": [], "document_types": [], "custom_fields": []}
         self.dokumente: dict[int, dict] = {}
         self.aufgaben: dict[str, dict] = {}
@@ -110,7 +111,7 @@ class FakePaperless:
         datei = form["document"]
         inhalt = await datei.read()
         task = str(uuid.uuid4())
-        md5 = hashlib.md5(inhalt).hexdigest()
+        md5 = hashlib.sha256(inhalt).hexdigest() if self.v3 else hashlib.md5(inhalt).hexdigest()
         if md5 in self.pruefsummen:
             self.aufgaben[task] = {"task_id": task, "status": "FAILURE", "related_document": None,
                                    "result": f"{datei.filename}: Not consuming {datei.filename}: It is a duplicate of "
@@ -143,6 +144,12 @@ class FakePaperless:
             return JSONResponse([])
         if a["status"] == "STARTED" and time.time() >= a["_fertig"]:
             a["status"], a["related_document"], a["result"] = "SUCCESS", a["_doc"], "Success"
+        if self.v3:
+            eintrag = {"id": 1, "task_id": a["task_id"], "status": a["status"].lower(),
+                       "result_data": {"document_id": a["related_document"]} if a["related_document"] else
+                       ({"error": a["result"]} if a["status"] == "FAILURE" else None),
+                       "related_document_ids": [a["related_document"]] if a["related_document"] else []}
+            return JSONResponse({"count": 1, "next": None, "previous": None, "results": [eintrag]})
         return JSONResponse([{k: v for k, v in a.items() if not k.startswith("_")}])
 
     async def _documents(self, request: Request):

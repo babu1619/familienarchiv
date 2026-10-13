@@ -149,11 +149,13 @@ def erstelle_app(k: Konfig, db: Datenbank, p: Paperless, importer: Importer, dow
             pfad = os.path.join(importer.eingang, a["id"])
             if os.path.exists(pfad):
                 with open(pfad, "rb") as f:
-                    md5 = hashlib.md5(f.read()).hexdigest()
-                zeilen.append((f"GET /api/documents/?checksum__iexact={md5}",
-                               p.roh("/api/documents/", {"checksum__iexact": md5, "page_size": 2,
-                                                          "fields": "id,title,original_file_name"})))
-                zeilen.append(("Suche über Prüfsumme", str(p.dokument_per_pruefsumme(md5))))
+                    inhalt = f.read()
+                md5, sha = hashlib.md5(inhalt).hexdigest(), hashlib.sha256(inhalt).hexdigest()
+                for summe in (sha, md5):
+                    zeilen.append((f"GET /api/documents/?checksum__iexact={summe}",
+                                   p.roh("/api/documents/", {"checksum__iexact": summe, "page_size": 2,
+                                                              "fields": "id,title"}, laenge=400)))
+                zeilen.append(("Suche über Prüfsumme", str(p.dokument_per_pruefsumme(sha, md5))))
         zeilen.append(("GET /api/tasks/ (Anfang)", p.roh("/api/tasks/", laenge=800)))
         return zeilen
 

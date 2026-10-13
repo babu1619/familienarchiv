@@ -130,11 +130,11 @@ class Importer:
         md5 = hashlib.md5(daten).hexdigest()
         try:
             # Wiederholung: Paperless hat die Datei evtl. schon beim letzten Versuch übernommen
-            doc_id = self.p.dokument_per_pruefsumme(md5) if a.get("paperless_task") else None
+            doc_id = self.p.dokument_per_pruefsumme(a["sha256"], md5) if a.get("paperless_task") else None
             if not doc_id:
                 task = self.p.hochladen(daten, a["dateiname"] or "dokument.pdf", d.get("titel") or None)
                 self.db.auftrag_setzen(auftrag_id, paperless_task=task)
-                doc_id = self.p.auf_aufgabe_warten(task, md5=md5)
+                doc_id = self.p.auf_aufgabe_warten(task, md5=md5, sha256=a["sha256"])
         except Duplikat as exc:
             self.db.datei_merken(a["sha256"], None)
             self.db.auftrag_setzen(auftrag_id, status="duplikat", fehler=f"Paperless: {exc}"[:500])
